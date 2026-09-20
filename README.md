@@ -1,7 +1,8 @@
 <img src="docs/icon.webp" width="120" alt="Shady icon">
 
 # Shady
-iOS like pull down notification shade for your mac. Swipe down from the top edge with two fingers. Does not show notifications. Just the clock.
+# iOS like pull down notification shade for your mac.
+Swipe down from the top edge with two fingers. Does not show notifications. Just the clock.
 
 [![Shady, half pulled down over a browser window](docs/demo-thumbnail.jpg)](docs/demo.mp4)
 
