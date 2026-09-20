@@ -1,9 +1,5 @@
 # Shady
-
-A curtain for your Mac. Swipe down with two fingers from just beyond the top
-edge of the trackpad. Drag back up, press Escape, or click it to dismiss.
-
-No Dock or menu bar icon — right-click the curtain for its menu.
+iOS like pull-down notification shade for your mac.
 
 ## First run
 
@@ -14,6 +10,7 @@ xattr -dr com.apple.quarantine /Applications/Shady.app
 ```
 
 Grant Accessibility when it asks (**System Settings > Privacy & Security >
-Accessibility**) — without it, scroll suppression and Escape-to-close don't work.
+Accessibility**) — without it, pulling the curtain down also scrolls whatever is
+behind it, and Escape won't close it.
 
 macOS 14+, Apple silicon. Build with `./build.sh`.
