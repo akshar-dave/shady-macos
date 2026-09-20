@@ -7,6 +7,10 @@ iOS like pull down notification shade for your mac. Swipe down from the top edge
 
 *[Watch the demo](docs/demo.mp4), you already know what it is*
 
+## Download
+
+[Download Shady.dmg](https://github.com/akshar-dave/shady-macos/releases/download/release/Shady-1.0.dmg)
+
 ## First run
 
 macOS blocks it because it is not notarized. After moving it to Applications:
