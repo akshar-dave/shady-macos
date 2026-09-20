@@ -1,5 +1,11 @@
+<img src="docs/icon.webp" width="120" alt="Shady icon">
+
 # Shady
-iOS like pull-down notification shade for your mac.
+iOS like pull down notification shade for your mac. Swipe down from the top edge with two fingers. Does not show notifications. Just the clock.
+
+[![Shady, half pulled down over a browser window](docs/demo-thumbnail.jpg)](docs/demo.mp4)
+
+*[Watch the demo](docs/demo.mp4), you already know what it is*
 
 ## First run
 
@@ -9,8 +15,4 @@ macOS blocks it because it is not notarized. After moving it to Applications:
 xattr -dr com.apple.quarantine /Applications/Shady.app
 ```
 
-Grant Accessibility when it asks (**System Settings > Privacy & Security >
-Accessibility**) — without it, pulling the curtain down also scrolls whatever is
-behind it, and Escape won't close it.
-
-macOS 14+, Apple silicon. Build with `./build.sh`.
+Allow Accessibility permission so it doesn't scroll the content behind it when swiping down.

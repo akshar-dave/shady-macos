@@ -3,10 +3,12 @@
 <plist version="1.0">
 <dict>
   <key>CFBundleName</key><string>Shady</string>
-  <key>CFBundleGetInfoString</key><string>Shady — curtain for your mac</string>
+  <key>CFBundleGetInfoString</key><string>Shady — iOS like pull-down notification center curtain for your mac</string>
   <key>CFBundleDisplayName</key><string>Shady</string>
   <key>CFBundleIdentifier</key><string>com.akshardave.notificationshade</string>
   <key>CFBundleExecutable</key><string>Shady</string>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
+  <key>CFBundleIconName</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>1.0</string>
   <key>CFBundleVersion</key><string>1</string>
