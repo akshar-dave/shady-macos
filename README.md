@@ -1,16 +1,16 @@
 <img src="docs/icon.webp" width="120" alt="Shady icon">
 
 # Shady
-# iOS like pull down notification shade for your mac.
-Swipe down from the top edge with two fingers. Does not show notifications. Just the clock.
+### iOS like pull down notification shade for your mac.
+Swipe down from the top edge with two fingers. Does not show notifications. Shady is your drawer to put things in. Click an item to copy it back to clipboard.
 
-![Shady, pulled down over a browser window](docs/demo.gif)
+![Shady drawer open, with multiple items in it](docs/drawer.gif)
 
-*You already know what it is. [Full quality video](docs/demo.mp4).*
+*You already know what it is. [Watch the demo](docs/drawer.mp4).*
 
 ## Download
 
-[Download Shady.dmg](https://github.com/akshar-dave/shady-macos/releases/download/release/Shady-1.0.dmg)
+[Download Shady.dmg](https://github.com/akshar-dave/shady-macos/releases/download/v1.1/Shady-1.1.dmg)
 
 ## First run
 

@@ -47,7 +47,7 @@ rm -rf "$ICONSET"
 
 swiftc -O \
   -target "arm64-apple-macosx${MIN_MACOS}" \
-  -framework AppKit -framework AVFoundation \
+  -framework AppKit -framework AVFoundation -framework QuickLookThumbnailing \
   -o "$APP/Contents/MacOS/Shady" \
   Sources/*.swift
 

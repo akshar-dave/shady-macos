@@ -23,6 +23,20 @@ final class OverlayPanel: NSPanel {
         contentView = shadeView
     }
 
+    /// ⌘V, routed by hand.
+    ///
+    /// Key equivalents are normally resolved against the main menu, and this app has no menu -
+    /// no Dock icon, no menu bar, nothing for AppKit to search. Without this the drawer would
+    /// never see a paste.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        let command = event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command
+        if command, event.charactersIgnoringModifiers?.lowercased() == "v" {
+            shadeView.drawer.paste(nil)
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
+    }
+
     /// An escape hatch: clicking the shade dismisses it even if the gesture misbehaves.
     override func mouseDown(with event: NSEvent) { onClick?() }
 

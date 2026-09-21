@@ -165,3 +165,122 @@ enum Config {
     static let minScrim: Double = 0.0
     static let maxScrim: Double = 0.0
 }
+
+// MARK: - Drawer
+
+extension Config {
+    /// The drawer's box, as fractions of screen height measured from the top and bottom edges.
+    /// The top clears the date by a comfortable margin rather than by a fixed number of points,
+    /// so it holds on any display the clock's own fractions hold on.
+    static let drawerTopFraction: CGFloat = 0.32
+    static let drawerBottomFraction: CGFloat = 0.10
+    static let drawerWidthFraction: CGFloat = 0.72
+    static let drawerMaxWidth: CGFloat = 1180
+
+    /// Breathing room inside the tray, before the first tile.
+    static let drawerPadding: CGFloat = 18
+
+    /// How many things the drawer holds before it refuses. A bottom, not a policy: the point is
+    /// that it is a space you can see all of, not a folder.
+    static let drawerCapacity = 28
+
+    /// How big a tile is.
+    ///
+    /// A fixed size, and the same size for everything in the drawer. Tiles that sized themselves
+    /// to the space made a near-empty drawer into a few enormous panels; things put down on a
+    /// surface are the size they are, and the empty space around them is what tells you how much
+    /// is in there.
+    /// The box every preview is fitted inside, keeping its own proportions.
+    ///
+    /// Both dimensions are capped, not just one. Fixing the height and letting the width run
+    /// free respected the media but not the drawer - a panorama came out four times the width
+    /// of a phone screenshot, and a row of those does not read as a set of things, it reads as
+    /// a mistake. Fitted to a box, a wide thing is short and a tall thing is narrow, and
+    /// everything occupies about the same amount of the surface.
+    static let drawerTileHeight: CGFloat = 74
+    static let drawerTileMaxWidth: CGFloat = 104
+    /// No dimension goes below this, whatever the proportions, so a panorama stays clickable.
+    static let drawerTileMinSide: CGFloat = 34
+    /// A scrap of paper, which is a portrait thing whatever is written on it - and the one kind
+    /// of tile allowed to fill the box outright, because its preview *is* the content. A
+    /// picture is recognisable from a thumbnail; a note is only useful if you can read enough
+    /// of it to know which note it is.
+    /// A little wider than a page really is, to win back the characters per line lost by
+    /// setting the text at a size the system actually draws well.
+    static let drawerPaperAspect: CGFloat = 0.92
+    /// Mini. `NSFont` has three sizes below the regular one - small (11), mini (9) and nothing
+    /// - and text set between them is text the system has no hinting for: it comes out soft
+    /// and slightly wrong, which is what "not macOS sized" looks like. 7pt was below the floor
+    /// altogether.
+    static let drawerPaperFont: CGFloat = 9
+    static let drawerPaperLines = 8
+    /// What QuickLook is asked to render at, and the shape assumed before it answers.
+    static let drawerTileWidth: CGFloat = 92
+    /// Clearance kept between two tiles when the drawer is looking for somewhere to put
+    /// something. Not a grid step - nothing snaps - just how close things are allowed to sit.
+    static let drawerTileGap: CGFloat = 10
+
+    /// What QuickLook is asked to render at. Comfortably above the drawn size, so a thumbnail
+    /// stays crisp on a Retina display.
+
+    /// How a newly pasted tile arrives: slightly small and out of focus, springing to rest.
+    /// Quick - this is a confirmation that the paste landed, not a performance.
+    static let drawerThumbnailSize: CGFloat = 256
+
+    /// How dark the rest of the curtain goes when you paste something the drawer already has.
+    static let spotlightDimming: Float = 0.72
+    /// How long the light stays on after ⌘V is let go, before it opens back out.
+    static let spotlightLingering: TimeInterval = 0.25
+
+    static let drawerEntranceScale: CGFloat = 0.82
+    static let drawerEntranceBlur: Double = 10
+
+    /// Follow-through: how much the drawer's contents lag behind the drawer.
+    ///
+    /// Everything in here is tied to the drawer by a rubber band. Pull the curtain and the tiles
+    /// are dragged along a beat late, then catch up and settle - the oldest trick in animation,
+    /// and the reason a moving thing reads as having weight rather than as a picture being
+    /// slid about.
+    ///
+    /// The furthest a tile may be stretched from its place. A full pull crosses the screen in
+    /// a couple of hundred milliseconds, and the whip at the start of one would otherwise throw
+    /// the contents clean off the surface.
+    static let drawerFollowMax: CGFloat = 11
+
+    /// Smoothing for the speed the follow-through is driven by. Gentler than the gesture's own
+    /// filter: this drives a decoration, so a little more lag is a fair price for a figure that
+    /// never jitters. The beta is what keeps it honest when the drawer is actually flung.
+    static let drawerSpeedMinCutoff: Double = 5
+    static let drawerSpeedBeta: Double = 1.2
+
+    /// The band itself: short, taut, and only just underdamped.
+    ///
+    /// Taut and heavily damped: stiffness 760 against damping 52 is a damping ratio near 0.95.
+    ///
+    /// The damping is high for a reason that only shows up when the numbers are simulated. A
+    /// band this soft rings at about three cycles a second, and a pull of the curtain lasts
+    /// around a fifth of a second - so at a lively damping ratio the tiles spend a good part of
+    /// the *gesture itself* on the far side of their rest position, leaning the way the hand is
+    /// going rather than against it. That is why the motion read as not respecting the
+    /// direction of the pull: it genuinely was not, for much of the pull.
+    ///
+    /// Near-critical, the shape is the one the eye expects and nothing else: pulled against the
+    /// movement while it accelerates, level while it runs, thrown past once when it stops, and
+    /// still. Two direction changes for a gesture that had two, instead of four.
+    ///
+    /// Stiffer than it was, because the settle is dead time: hit testing uses a tile's real
+    /// frame, not where the band has swung it to, so a tile still travelling is a tile whose
+    /// picture and target have come apart. Half a second of that at the end of every pull is
+    /// felt as the drawer not being ready yet, which is a worse fault than a short trail.
+    static let drawerFollowStiffness: CGFloat = 760
+    static let drawerFollowDamping: CGFloat = 52
+
+    /// How much of the vertical stretch shows up sideways.
+    ///
+    /// Barely any. This is the axis nothing is pulling along, so anything much here reads as
+    /// the tiles coming unstuck rather than as weight. A hint of splay at the edges of the
+    /// drawer, and nothing at all in the middle of it.
+    static let drawerFollowSway: CGFloat = 0.025
+
+
+}

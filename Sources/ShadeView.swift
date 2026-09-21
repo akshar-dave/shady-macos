@@ -113,9 +113,17 @@ final class ShadeView: NSView {
     private let timeLayer = CATextLayer()
     private let dateLayer = CATextLayer()
 
+    /// The drawer under the clock. A real `NSView` rather than a layer, because it has to take
+    /// clicks and the keyboard, and it rides down with the clock: the same translation is applied
+    /// to its layer every frame.
+    let drawer = DrawerView(frame: .zero)
+
     private var screenSize: CGSize = .zero
     private var progress: CGFloat = 0
     private var lastBackdropLog: CFTimeInterval = 0
+    private var spotlightDim: CALayer?
+    private var spotlightMask: CAShapeLayer?
+    private var spotlightCentre: CGPoint = .zero
     private var timeFont: NSFont = .systemFont(ofSize: 96)
     private var dateFont: NSFont = .systemFont(ofSize: 22)
 
@@ -238,6 +246,12 @@ final class ShadeView: NSView {
         container.addSublayer(timeLayer)
 
         content.layer?.addSublayer(container)
+
+        drawer.wantsLayer = true
+        drawer.onSpotlight = { [weak self] rect in self?.showSpotlight(on: rect) }
+        drawer.onSpotlightEnd = { [weak self] in self?.releaseSpotlight() }
+        addSubview(drawer)
+
         layout(for: screenSize)
         setProgress(0)
         observeClockPreferences()
@@ -298,6 +312,19 @@ final class ShadeView: NSView {
         }
         place(timeLayer, font: timeFont, baselineFromTop: size.height * Config.timeBaselineFraction)
         place(dateLayer, font: dateFont, baselineFromTop: size.height * Config.dateBaselineFraction)
+
+        // Under the clock, centred, and stopping well short of the bottom edge. Hit testing
+        // works off this frame, so the transform that carries the drawer down is cleared while
+        // it is being set and re-applied by the next `setProgress`.
+        let width = min(Config.drawerMaxWidth, size.width * Config.drawerWidthFraction)
+        let top = size.height * Config.drawerTopFraction
+        let bottom = size.height * Config.drawerBottomFraction
+        drawer.layer?.transform = CATransform3DIdentity
+        drawer.frame = NSRect(x: (size.width - width).rounded() / 2,
+                              y: bottom,
+                              width: width,
+                              height: max(120, size.height - top - bottom))
+        drawer.needsLayout = true
         CATransaction.commit()
     }
 
@@ -453,6 +480,97 @@ final class ShadeView: NSView {
         CATransaction.commit()
     }
 
+    /// Everything but one circle goes dark, for as long as the key is held.
+    ///
+    /// This is what the drawer does when you paste something it already has. A tile lighting up
+    /// on its own is easy to miss on a busy surface - the eye has to already be looking at it -
+    /// whereas taking the rest away leaves nowhere else to look.
+    ///
+    /// It holds rather than playing out on its own clock, because the question is still being
+    /// asked: fingers still on ⌘V means still looking. `releaseSpotlight` is what ends it.
+    func showSpotlight(on windowRect: NSRect) {
+        let target = convert(windowRect, from: nil)
+        spotlightCentre = CGPoint(x: target.midX, y: target.midY)
+        let hole = max(target.width, target.height) * 0.75 + 14
+
+        // Already lit: move the hole to the new tile rather than stacking a second layer over
+        // the first. Pasting two things you already have in quick succession is one continuous
+        // look, not two flashes.
+        if let mask = spotlightMask {
+            mask.removeAnimation(forKey: "open")
+            mask.path = spotlightPath(radius: hole)
+            return
+        }
+
+        let dim = CALayer()
+        dim.frame = bounds
+        dim.backgroundColor = NSColor.black.cgColor
+        dim.opacity = 0
+
+        // An even-odd mask: the whole curtain, with a circle punched out of it. Masking rather
+        // than drawing a ring means the hole is genuinely transparent, so what shows through it
+        // is the drawer exactly as it already was.
+        let mask = CAShapeLayer()
+        mask.fillRule = .evenOdd
+        mask.frame = bounds
+        mask.path = spotlightPath(radius: hole)
+        dim.mask = mask
+        layer?.addSublayer(dim)
+        spotlightDim = dim
+        spotlightMask = mask
+
+        let dimIn = CABasicAnimation(keyPath: "opacity")
+        dimIn.fromValue = 0
+        dimIn.toValue = Config.spotlightDimming
+        dimIn.duration = 0.10
+        dim.opacity = Config.spotlightDimming
+        dim.add(dimIn, forKey: "in")
+    }
+
+    /// Opens the circle back out and takes the dimming away.
+    ///
+    /// The reveal is not decoration: an effect that cuts out abruptly reads as a glitch, while
+    /// one that opens outward reads as the drawer handing you back what it borrowed.
+    func releaseSpotlight() {
+        guard let dim = spotlightDim, let mask = spotlightMask else { return }
+        spotlightDim = nil
+        spotlightMask = nil
+
+        let hole = mask.path.map { $0.boundingBoxOfPath }
+        let radius = (hole.map { min($0.width, $0.height) } ?? 0) / 2
+        // Big enough to clear the corners from wherever the hole is centred, so the dimming is
+        // gone rather than shrinking away as a visible ring.
+        let full = hypot(bounds.width, bounds.height)
+
+        let open = CABasicAnimation(keyPath: "path")
+        open.fromValue = spotlightPath(radius: radius)
+        open.toValue = spotlightPath(radius: full)
+        open.duration = 0.34
+        open.timingFunction = CAMediaTimingFunction(name: .easeIn)
+        open.fillMode = .forwards
+        open.isRemovedOnCompletion = false
+
+        let dimOut = CABasicAnimation(keyPath: "opacity")
+        dimOut.fromValue = Config.spotlightDimming
+        dimOut.toValue = 0
+        dimOut.duration = open.duration
+        dim.opacity = 0
+
+        CATransaction.begin()
+        CATransaction.setCompletionBlock { dim.removeFromSuperlayer() }
+        mask.add(open, forKey: "open")
+        dim.add(dimOut, forKey: "out")
+        CATransaction.commit()
+    }
+
+    private func spotlightPath(radius: CGFloat) -> CGPath {
+        let p = CGMutablePath()
+        p.addRect(bounds)
+        p.addEllipse(in: CGRect(x: spotlightCentre.x - radius, y: spotlightCentre.y - radius,
+                                width: radius * 2, height: radius * 2))
+        return p
+    }
+
     /// One frame of the curtain. `p` is 0...1, a little beyond 1 while rubber banding.
     func setProgress(_ p: CGFloat) {
         progress = p
@@ -530,6 +648,15 @@ final class ShadeView: NSView {
         let fade = Config.minOpacity + (1 - Config.minOpacity) * ramp
         timeLayer.opacity = Float(fade)
         dateLayer.opacity = Float(fade)
+        drawer.layer?.transform = container.transform
+
+        // Where the curtain now is, handed to the drawer so its contents can be hung off it.
+        // Taken from the transform that was just applied rather than from the gesture, because
+        // this is the number the eye is actually seeing - it already includes the spring, the
+        // rubber banding at the limit, and every interruption.
+        drawer.curtainMoved(to: (1 - clamped) * screenSize.height - overshoot)
+        drawer.alphaValue = CGFloat(fade)
+        drawer.isHidden = clamped <= 0
 
         // Stage two: the carried wallpaper takes over, from `wallpaperFadeStart` to fully open.
         let span = max(0.001, Config.wallpaperFadeEnd - Config.wallpaperFadeStart)

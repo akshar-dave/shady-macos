@@ -67,6 +67,8 @@ final class ShadeController {
         screen = s
         let p = OverlayPanel(screen: s)
         p.onClick = { [weak self] in self?.close() }
+        p.shadeView.drawer.onEscape = { [weak self] in self?.close() }
+        p.shadeView.drawer.onPick = { [weak self] in self?.close() }
         p.contextMenu = contextMenu
         p.setFrame(s.frame, display: false)
         p.shadeView.updateClock(Date())
@@ -139,6 +141,9 @@ final class ShadeController {
         // is already mapped onto the old geometry.
         if !isVisible, let s = targetScreen() { adopt(s) }
         refreshWallpaperIfNeeded()
+        // A new pull owns the curtain: the drawer gives the keyboard back until it settles open
+        // again.
+        releaseDrawer()
         stopSpring()
         pendingProgress = nil
         show()
@@ -199,12 +204,59 @@ final class ShadeController {
     private func apply() {
         guard let p = panel else { return }
         p.shadeView.setProgress(progress)
-        if progress <= 0.001 { p.orderOut(nil) }
+        if progress > 0.9 { armDrawer() }
+        if progress <= 0.001 {
+            releaseDrawer()
+            p.orderOut(nil)
+        }
+    }
+
+    /// Hands the keyboard to the drawer.
+    ///
+    /// The app has to come forward for this. It runs as an accessory with no Dock icon, and a
+    /// non-activating panel belonging to an inactive app is shown the keystrokes of whatever is
+    /// actually frontmost, not its own. `AppDelegate` already ignores Shady activating itself,
+    /// so this does not dismiss the curtain it is focusing.
+    ///
+    /// Done as soon as the curtain is known to be opening, not when it arrives. A flick down
+    /// followed straight away by ⌘V is one gesture as far as the user is concerned, and the
+    /// spring takes a couple of hundred milliseconds to settle - long enough that a paste sent
+    /// in that window used to go to whatever app was still frontmost.
+    private func focusDrawer() {
+        guard let p = panel, isVisible else { return }
+        NSApp.activate(ignoringOtherApps: true)
+        p.makeKeyAndOrderFront(nil)
+        p.makeFirstResponder(p.shadeView.drawer)
+    }
+
+    /// Lets the drawer take clicks.
+    ///
+    /// At nine tenths of the way open rather than at the end of the spring. The last tenth is
+    /// a few points of travel that the eye has already discounted - by then the drawer is
+    /// where it is going to be - and waiting for the spring to formally finish put a beat
+    /// between the curtain arriving and it answering the mouse. That beat is felt as the app
+    /// being slow, even though nothing was.
+    private func armDrawer() {
+        panel?.shadeView.drawer.interactive = true
+    }
+
+    /// Lets go of the keyboard and the mouse.
+    ///
+    /// The panel sits at screen-saver level over everything, so a drawer still holding first
+    /// responder while the curtain slides away is a view eating the ⌘V meant for the app
+    /// underneath. Nothing needs saving here: the drawer writes to disk as things go into it.
+    private func releaseDrawer() {
+        guard let p = panel else { return }
+        p.shadeView.drawer.interactive = false
+        p.shadeView.drawer.endSpotlight()
+        p.makeFirstResponder(nil)
+        p.resignKey()
     }
 
     private func settle(to target: CGFloat, velocity: CGFloat) {
         if panel == nil { prepare() }
         if target > 0 { show() }
+        if target <= 0 { releaseDrawer() } else { focusDrawer() }
         // Drop any position the gesture had queued for the next frame. The spring owns the
         // shade from here; applying a stale touch frame after it finishes would snap the curtain
         // back to wherever the fingers happened to stop.
@@ -231,7 +283,10 @@ final class ShadeController {
             spring = sp
             progress = sp.value
             apply()
-            if done { stopSpring() }
+            if done {
+                stopSpring()
+                if progress > 0.5 { focusDrawer(); armDrawer() }
+            }
         } else if let p = pendingProgress {
             pendingProgress = nil
             lastTick = now
