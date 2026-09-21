@@ -4,9 +4,9 @@
 # iOS like pull down notification shade for your mac.
 Swipe down from the top edge with two fingers. Does not show notifications. Just the clock.
 
-[![Shady, half pulled down over a browser window](docs/demo-thumbnail.jpg)](docs/demo.mp4)
+![Shady, pulled down over a browser window](docs/demo.gif)
 
-*[Watch the demo](docs/demo.mp4), you already know what it is*
+*You already know what it is. [Full quality video](docs/demo.mp4).*
 
 ## Download
 
